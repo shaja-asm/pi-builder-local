@@ -3,9 +3,10 @@ FROM hypriot/image-builder:latest
 # Enable better error handling
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Replace stretch sources with bookworm in sources.list
-RUN sed -i 's/stretch/bookworm/g' /etc/apt/sources.list && \
-    apt-get update && \
+# Use archived Stretch repositories
+RUN echo "deb http://archive.debian.org/debian/ stretch main contrib non-free" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian-security/ stretch/updates main contrib non-free" >> /etc/apt/sources.list && \
+    apt-get update -o Acquire::Check-Valid-Until=false && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     binfmt-support \
     qemu \
