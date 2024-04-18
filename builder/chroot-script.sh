@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-KEYSERVER="keyserver.ubuntu.com"
+KEYSERVER="ha.pool.sks-keyservers.net"
 
 function clean_print(){
   local fingerprint="${2}"
@@ -21,6 +21,9 @@ function clean_print(){
     if [[ "${fingerprint}" != "${nospaces}" ]]; then
       printf "%-10s %50s\n" fpr: "${fingerprint}"
     fi
+    # if [[ "${nospaces}" != "${tolowercase}" ]]; then
+    #   printf "%-10s %50s\n" nospaces: $nospaces
+    # fi
     if [[ "${tolowercase}" != "${KEYID_long}" ]]; then
       printf "%-10s %50s\n" lower: "${tolowercase}"
     fi
@@ -31,6 +34,7 @@ function clean_print(){
     echo "usage: function {print|fpr|long|short} GPGKEY"
   fi
 }
+
 
 function get_gpg(){
   GPG_KEY="${1}"
@@ -45,6 +49,7 @@ function get_gpg(){
     wget -q -O "${KEY_FILE}" "${KEY_URL}"
   elif [[ -z "${KEY_URL}" ]]; then
     echo "no source given try to load from key server"
+#    gpg --keyserver "${KEYSERVER}" --recv-keys "${GPG_KEY}"
     apt-key adv --keyserver "${KEYSERVER}" --recv-keys "${GPG_KEY}"
     return $?
   else
@@ -76,6 +81,10 @@ function get_gpg(){
   fi
 }
 
+## examples:
+# clean_print {print|fpr|long|short} {GPGKEYID|FINGERPRINT}
+# get_gpg {GPGKEYID|FINGERPRINT} [URL|FILE]
+
 # device specific settings
 HYPRIOT_DEVICE="Raspberry Pi"
 
@@ -86,7 +95,7 @@ mkdir -p "$(dirname "${DEST}")"
 echo "nameserver 8.8.8.8" > "${DEST}"
 
 # set up hypriot rpi repository for raspbian specific packages
-echo 'deb https://packagecloud.io/Hypriot/rpi/raspbian/ bookworm main' >> /etc/apt/sources.list.d/hypriot.list
+echo 'deb https://packagecloud.io/Hypriot/rpi/raspbian/ stretch main' >> /etc/apt/sources.list.d/hypriot.list
 curl -L https://packagecloud.io/Hypriot/rpi/gpgkey | apt-key add -
 
 # set up Docker CE repository
@@ -95,57 +104,58 @@ DOCKERREPO_KEY_URL=https://download.docker.com/linux/raspbian/gpg
 get_gpg "${DOCKERREPO_FPR}" "${DOCKERREPO_KEY_URL}"
 
 CHANNEL=edge # stable, test or edge
-echo "deb [arch=armhf] https://download.docker.com/linux/raspbian bookworm $CHANNEL" > /etc/apt/sources.list.d/docker.list
+echo "deb [arch=armhf] https://download.docker.com/linux/raspbian stretch $CHANNEL" > /etc/apt/sources.list.d/docker.list
 
-RPI_ORG_FPR=CF8A1AF502A2AA2D763BAE7E82B129927FA3303E
-RPI_ORG_KEY_URL=http://archive.raspberrypi.org/debian/raspberrypi.gpg.key
+
+RPI_ORG_FPR=CF8A1AF502A2AA2D763BAE7E82B129927FA3303E RPI_ORG_KEY_URL=http://archive.raspberrypi.org/debian/raspberrypi.gpg.key
 get_gpg "${RPI_ORG_FPR}" "${RPI_ORG_KEY_URL}"
 
-echo 'deb http://archive.raspberrypi.org/debian/ bookworm main' | tee /etc/apt/sources.list.d/raspberrypi.list
+echo 'deb http://archive.raspberrypi.org/debian/ stretch main' | tee /etc/apt/sources.list.d/raspberrypi.list
 
 # reload package sources
 apt-get update
 # apt-get upgrade -y
 
 # install packages
-apt-get -o Dpkg::Options::="--force-confdef" \
-    install -y \
-    --no-install-recommends \
-    firmware-atheros \
-    firmware-brcm80211 \
-    firmware-libertas \
-    firmware-misc-nonfree \
-    firmware-realtek \
-    raspberrypi-bootloader \
-    libraspberrypi0 \
-    libraspberrypi-bin \
-    raspi-config \
-    wpasupplicant \
-    wireless-tools \
-    crda \
-    raspberrypi-net-mods \
-    dnsmasq \
-    hostapd \
-    fake-hwclock \
-    screen \
-    lighttpd \
-    php7.0-fpm \
-    php-cgi \
-    dialog \
-    pi-bluetooth \
-    lsb-release \
-    gettext \
-    cloud-init
+apt-get  -o Dpkg::Options::=--force-confdef \
+  install -y \
+  --no-install-recommends \
+  firmware-atheros \
+  firmware-brcm80211 \
+  firmware-libertas \
+  firmware-misc-nonfree \
+  firmware-realtek \
+  raspberrypi-bootloader \
+  libraspberrypi0 \
+  libraspberrypi-bin \
+  raspi-config \
+  wpasupplicant \
+  wireless-tools \
+  crda \
+  raspberrypi-net-mods \
+  dnsmasq \
+  hostapd \
+  fake-hwclock \
+  screen \
+  lighttpd \
+  php7.0-fpm \
+  php-cgi \
+  dialog\
+  pi-bluetooth \
+  lsb-release \
+  gettext \
+  cloud-init
+
 
 # install special Docker enabled kernel
 if [ -z "${KERNEL_URL}" ]; then
-    apt-get install -y \
-        --no-install-recommends \
-        "raspberrypi-kernel=${KERNEL_BUILD}"
+  apt-get install -y \
+    --no-install-recommends \
+    "raspberrypi-kernel=${KERNEL_BUILD}"
 else
-    curl -L -o /tmp/kernel.deb "${KERNEL_URL}"
-    dpkg -i /tmp/kernel.deb
-    rm /tmp/kernel.deb
+  curl -L -o /tmp/kernel.deb "${KERNEL_URL}"
+  dpkg -i /tmp/kernel.deb
+  rm /tmp/kernel.deb
 fi
 
 # enable serial console
@@ -158,13 +168,13 @@ echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0
 echo "
 hdmi_force_hotplug=1
 enable_uart=0
-" > /boot/config.txt
+" > boot/config.txt
 
 echo "# camera settings, see http://elinux.org/RPiconfig#Camera
 start_x=1
 disable_camera_led=1
 gpu_mem=128
-" >> /boot/config.txt
+" >> boot/config.txt
 
 # /etc/modules
 echo "snd_bcm2835
@@ -193,8 +203,8 @@ systemctl disable dhcpcd
 systemctl disable hciuart
 
 echo "Installing rpi-serial-console script"
-wget -q https://raw.githubusercontent.com/lurch/rpi-serial-console/master/rpi-serial-console -O /usr/local/bin/rpi-serial-console
-chmod +x /usr/local/bin/rpi-serial-console
+wget -q https://raw.githubusercontent.com/lurch/rpi-serial-console/master/rpi-serial-console -O usr/local/bin/rpi-serial-console
+chmod +x usr/local/bin/rpi-serial-console
 
 # fix eth0 interface name
 ln -s /dev/null /etc/systemd/network/99-default.link
@@ -207,4 +217,3 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 echo "HYPRIOT_DEVICE=\"$HYPRIOT_DEVICE\"" >> /etc/os-release
 echo "HYPRIOT_IMAGE_VERSION=\"$HYPRIOT_IMAGE_VERSION\"" >> /etc/os-release
 cp /etc/os-release /boot/os-release
-
