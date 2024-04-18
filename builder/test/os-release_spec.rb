@@ -7,8 +7,8 @@ describe "Root filesystem" do
     expect(stdout).to contain('debian')
   end
 
-  it "is debian version stretch" do
-    expect(stdout).to contain('stretch')
+  it "is debian version bookworm" do
+    expect(stdout).to contain('bookworm')
   end
 
   it "is a HypriotOS" do
@@ -28,7 +28,7 @@ describe "Root filesystem" do
     expect(stdout).to contain('^HYPRIOT_IMAGE_VERSION=')
   end
 
-  it "is for architecure 'HYPRIOT_OS=\"HypriotOS/armhf\"'" do
+  it "is for architecture 'HYPRIOT_OS=\"HypriotOS/armhf\"'" do
     expect(stdout).to contain('^HYPRIOT_OS="HypriotOS/armhf"$')
   end
 
